@@ -1,12 +1,18 @@
 import os
 import sublime
 import sublime_plugin
+
 try:
     from .view_collection import ViewCollection
 except (ImportError, ValueError):
     from view_collection import ViewCollection
 
+ST3 = int(sublime.version()) >= 3000
 
+
+def plugin_loaded():
+    global settings
+    settings = sublime.load_settings('GitGutter.sublime-settings')
 
 
 class GitGutterCommand(sublime_plugin.WindowCommand):
@@ -20,11 +26,16 @@ class GitGutterCommand(sublime_plugin.WindowCommand):
             # View is not ready yet, try again later.
             sublime.set_timeout(self.run, 1)
             return
+
         self.clear_all()
+        show_untracked = settings.get('show_markers_on_untracked_file', False)
+
         if ViewCollection.untracked(self.view):
-            self.bind_files('untracked')
+            if show_untracked:
+                self.bind_files('untracked')
         elif ViewCollection.ignored(self.view):
-            self.bind_files('ignored')
+            if show_untracked:
+                self.bind_files('ignored')
         else:
             # If the file is untracked there is no need to execute the diff
             # update
@@ -42,10 +53,10 @@ class GitGutterCommand(sublime_plugin.WindowCommand):
                 else:
                     branch = ""
 
-                self.update_status(len(inserted), 
-                                   len(modified), 
-                                   len(deleted), 
-                                   ViewCollection.get_compare(), branch)
+                self.update_status(len(inserted),
+                                   len(modified),
+                                   len(deleted),
+                                   ViewCollection.get_compare(self.view), branch)
             else:
                 self.update_status(0, 0, 0, "", "")
 
@@ -67,12 +78,26 @@ class GitGutterCommand(sublime_plugin.WindowCommand):
         for region_name in self.region_names:
             self.view.erase_regions('git_gutter_%s' % region_name)
 
+    def is_region_protected(self, region):
+        # Load protected Regions from Settings
+        protected_regions = settings.get('protected_regions',[])
+        # List of Lists of Regions
+        sets = [self.view.get_regions(r) for r in protected_regions]
+        # List of Regions
+        regions = [r for rs in sets for r in rs]
+        for r in regions:
+            if r.contains(region):
+                return True
+
+        return False
+
     def lines_to_regions(self, lines):
         regions = []
         for line in lines:
             position = self.view.text_point(line - 1, 0)
             region = sublime.Region(position, position)
-            regions.append(region)
+            if not self.is_region_protected(region):
+                regions.append(region)
         return regions
 
     def lines_removed(self, lines):
@@ -108,7 +133,7 @@ class GitGutterCommand(sublime_plugin.WindowCommand):
             extn = '.png'
 
         return "/".join([path, 'icons', icon_name + extn])
-        
+
     def bind_icons(self, event, lines):
         regions = self.lines_to_regions(lines)
         event_scope = event
@@ -126,3 +151,7 @@ class GitGutterCommand(sublime_plugin.WindowCommand):
             lines += [i + 1]
             i = i + 1
         self.bind_icons(event, lines)
+
+
+if not ST3:
+    plugin_loaded()

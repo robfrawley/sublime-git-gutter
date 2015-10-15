@@ -2,6 +2,13 @@
   // Custom path to git binary when not in PATH
   "git_binary": "",
 
+  // The commit, branch, tag, or remote to compare against
+  // Can be set on a per-project basis by adding a project
+  // setting of "git_gutter_compare_against".
+  // This setting only changes the default (HEAD), but can
+  // still be overwritten temporarily using one of the commands
+  "compare_against": "HEAD",
+
   // Live mode evaluates changes every time file is modified,
   // Set false to disable evaluation after each input
   "live_mode": true,
@@ -13,7 +20,7 @@
   // When set to true GitGutter runs asynchronously in a seperate thread
   // This may cause a small delay between a modification and the icon change
   // but can increase performance greatly if needed.
-  "non_blocking": false,
+  "non_blocking": true,
 
   // When using non_blocking mode, delay update of gutter icons by the
   // following amount (in milliseconds).
@@ -43,5 +50,10 @@
 
   // Determines whether the git_gutter_next_change and git_gutter_prev_change
   // commands wrap around on reaching the beginning/ending of the file.
-  "next_prev_change_wrap": true
+  "next_prev_change_wrap": true,
+
+  // Do not set GitGutter icons in these regions
+  // Useful for making sure GitGutter does not override other
+  // regions, (e.g. Bookmarks, Linter/BracketHighlighter icons.)
+  "protected_regions": []
 }
